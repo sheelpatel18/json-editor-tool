@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start" : "concurrently \"mongod --dbpath Mongo/data/db\" \" npm --prefix ./App run prod\" \"npm --prefix ./Server start\""
   },
