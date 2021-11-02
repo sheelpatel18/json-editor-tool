@@ -73,6 +73,14 @@ class API {
         return res
     }
 
+    getServerURL() {
+        return this.server
+    }
+
+    getServerPort() {
+        return this.port
+    }
+
 }
 
 export default API

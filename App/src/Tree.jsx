@@ -6,7 +6,8 @@ import TreeView from '@mui/lab/TreeView';
 import TreeItem, { treeItemClasses } from '@mui/lab/TreeItem';
 import Collapse from '@mui/material/Collapse';
 import { useSpring, animated } from 'react-spring';
-import { ButtonGroup, Paper, Button } from '@mui/material';
+import { ButtonGroup, Paper, Button, TextField } from '@mui/material';
+import useWindowSize from "./useWindowSize"
 
 function MinusSquare(props) {
     return (
@@ -91,6 +92,10 @@ export default function Tree(props) {
     const setJsonRefNode = props.setJsonRefNode
     const handleNewRoute = props.handleNewRoute
     const handleNewJSON = props.handleNewJSON
+    const metaData = props.metaData
+    const setMetaData = props.setMetaData
+    const height = window.innerHeight
+    //const { height, width } = useWindowSize()
 
     const handleNodeSelect = (event, nodeId) => {
         if (actionNames.includes(event.target.innerText)) setSelected(nodeId)
@@ -124,7 +129,7 @@ export default function Tree(props) {
 
 
     return data ? (
-        <Paper sx={{ width: "20%", height: "600px", float: "left" }}>
+        <Paper sx={{ width: "20%", height: "650px", float: "left" }}>
             <ButtonGroup>
                 <Button
                 onClick={handleNewRoute}
@@ -144,10 +149,20 @@ export default function Tree(props) {
             defaultCollapseIcon={<MinusSquare />}
             defaultExpandIcon={<PlusSquare />}
             defaultEndIcon={<CloseSquare />}
-            sx={{ height: 600, flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
+            sx={{ height: height-400, flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
         >
             {GenerateTree(data)}
         </TreeView>
+        <TextField 
+            id="description"
+            label="Description"
+            multiline
+            fullWidth
+            autoFocus
+            minRows={12}
+            value={metaData?.description}
+            onChange={(e) => setMetaData({...metaData, description: e.target.value})}
+        />
         </Paper>
     ) : null
 }

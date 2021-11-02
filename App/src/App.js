@@ -118,8 +118,8 @@ function App() {
 
   return (
     <div>
-      <Tree data={hierarchyData} selectedNode={selectedNode} setSelectedNode={setSelectedNode} setJsonRefNode={setJsonRefNode} handleNewRoute={handleNewRoute} handleNewJSON={handleNewJSON}/>
-      <Editor metaData={metaData} json={json} handleChange={handleChange} handleSave={handleSave} handleDelete={handleDelete} loadingSave={loadingSave} loadingDelete={loadingDelete} successAlert={successAlert}/>
+      <Tree data={hierarchyData} selectedNode={selectedNode} setSelectedNode={setSelectedNode} setJsonRefNode={setJsonRefNode} handleNewRoute={handleNewRoute} handleNewJSON={handleNewJSON} metaData={metaData} setMetaData={setMetaData}/>
+      <Editor metaData={metaData} json={json} handleChange={handleChange} handleSave={handleSave} handleDelete={handleDelete} loadingSave={loadingSave} loadingDelete={loadingDelete} successAlert={successAlert} api={api}/>
     </div>
   );
 }

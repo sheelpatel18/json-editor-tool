@@ -3,3 +3,5 @@ build
 env
 vscode
 .DS_Store
+Mongo
+.DS_Store

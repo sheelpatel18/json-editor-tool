@@ -28,6 +28,8 @@ function Editor(props) {
     const loadingSave = props.loadingSave
     const loadingDelete = props.loadingDelete
     const successAlert = props.successAlert
+    const [showDescription, setShowDescription] = useState(false)
+    const api = props.api
 
     const JSONEditor = (props) => {
         return (
@@ -38,6 +40,7 @@ function Editor(props) {
             mode="code"
             theme="ace/theme/github"
             ace={ace}
+            htmlElementProps={{style: {height: 600}}}
         />
         )
     }
@@ -55,6 +58,9 @@ function Editor(props) {
                 </Typography>
             </Paper>
             <JSONEditor json={json}/>
+            <Typography variant="h6" sx={{ textAlign: "center" }}>
+                    {metaData ? `${api.getServerURL()}:${api.getServerPort()}/mock${metaData.route}` : null}
+                </Typography>
     </Paper>
     ) : null
 }
