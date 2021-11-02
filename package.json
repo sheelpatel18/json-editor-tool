@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install",
+    "mongo-config": "concurrently \"mongod --dbpath Mongo/data/db\" \"node mongo-config.js\"",
+    "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install && npm run mongo-config",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start" : "concurrently \"mongod --dbpath Mongo/data/db\" \" npm --prefix ./App run prod\" \"npm --prefix ./Server start\""
+    "start": "concurrently \"mongod --dbpath Mongo/data/db\" \" npm --prefix ./App run prod\" \"npm --prefix ./Server start\""
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,8 @@
   },
   "homepage": "https://github.com/sheelpatel18/json-editor-tool#readme",
   "dependencies": {
-    "concurrently": "^6.3.0"
+    "concurrently": "^6.3.0",
+    "mongo": "^0.1.0",
+    "mongodb": "^4.1.3"
   }
 }
