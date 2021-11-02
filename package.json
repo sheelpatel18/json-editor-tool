@@ -14,7 +14,7 @@
     "url": "git+https://github.com/sheelpatel18/json-editor-tool.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sheel Patel",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/sheelpatel18/json-editor-tool/issues"
@@ -22,7 +22,6 @@
   "homepage": "https://github.com/sheelpatel18/json-editor-tool#readme",
   "dependencies": {
     "concurrently": "^6.3.0",
-    "mongo": "^0.1.0",
     "mongodb": "^4.1.3"
   }
 }
