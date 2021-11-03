@@ -32,7 +32,7 @@ function App() {
 
 
   useEffect(() => {
-    setApi(new API("http://localhost", "8092"))
+    setApi(new API("http:/74.208.178.82", "8092"))
     if (api) api.addSchema(metaData)
   }, [])
 
