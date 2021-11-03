@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "mongo-config": "concurrently \"mongod --dbpath Mongo/data/db\" \"node mongo-config.js\" \" mongod --port 27017 --shutdown \" ",
-    "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install && npm run mongo-config && npm --prefix '.App run prod-build",
+    "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install && npm run mongo-config && npm --prefix ./App run prod-build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "concurrently \"mongod --dbpath Mongo/data/db\" \" npm --prefix ./App run prod\" \"npm --prefix ./Server start\""
   },
