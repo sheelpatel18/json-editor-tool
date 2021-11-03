@@ -107,14 +107,15 @@ app.route("/schemas")
     })
     .post((req, res) => {
         try {
-            schemas.insertOne({
-                data: req.body.data,
-                metaData : {
-                    route: req.body.route,
-                    request_type: req.body.request_type
-                }
+            schemas.insertOne({ 
+                metaData: { 
+                    ...req.body.metaData 
+                }, 
+                data: { 
+                    ...req.body.data 
+                } 
             }).then((doc) => {
-                updateHierarchy(req.body.route, req.body.request_type, ObjectId(doc.insertedId).toString())
+                updateHierarchy(req.body.metaData.route, req.body.metaData.request_type, ObjectId(doc.insertedId).toString())
                 res.status(200).json({ message: "SUCCESS" })
             }).catch(err => { throw err })
         } catch (err) {
@@ -134,7 +135,7 @@ app.route("/schemas/:id")
     })
     .put((req, res) => {
         try {
-            schemas.updateOne({ _id: ObjectId(req.params.id) }, { $set: { metaData: {...req.body.metaData}, data : {...req.body.data} } }).then((doc) => {
+            schemas.updateOne({ _id: ObjectId(req.params.id) }, { $set: { metaData: { ...req.body.metaData }, data: { ...req.body.data } } }).then((doc) => {
                 console.log(doc)
                 res.status(200).json({ message: "SUCCESS" })
             }).catch(err => console.log(err))
@@ -145,7 +146,7 @@ app.route("/schemas/:id")
     .delete((req, res) => {
         try {
             schemas.findOneAndDelete({ _id: ObjectId(req.params.id) }).then(doc => {
-                updateHierarchy(doc.value.route, doc.value.request_type, ObjectId(doc.value._id).toString(), true).then(hierarchy => {
+                updateHierarchy(doc.value.metaData.route, doc.value.metaData.request_type, ObjectId(doc.value._id).toString(), true).then(hierarchy => {
                     res.status(200).json({ message: "SUCCESS", hierarchy: hierarchy })
                 }).catch(err => { throw err })
             }).catch(err => { throw err })
