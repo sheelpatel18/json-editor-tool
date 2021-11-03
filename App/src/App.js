@@ -32,7 +32,7 @@ function App() {
 
 
   useEffect(() => {
-    setApi(new API("http://74.208.178.82", "8092"))
+    setApi(new API("http://localhost", "8092"))
     if (api) api.addSchema(metaData)
   }, [])
 
@@ -94,8 +94,10 @@ function App() {
     const route = window.prompt("enter a route", "")
     const request_type = window.prompt("request type?", "")
     const data  = {
-      route : route,
-      request_type, request_type,
+      metaData : {
+        route : route,
+        request_type : request_type
+      },
       data : {}
     }
     api.post("/schemas", null, data).then(res => {
@@ -103,7 +105,7 @@ function App() {
       getHierarchy();
       getSchemas();
       setSuccessAlert(true)
-      setTimeout(() => {setSuccessAlert(false)}, 2000)
+      setTimeout(() => {setSuccessAlert(false)}, 1000)
     }).catch(err => {
       console.log(err)
     })
