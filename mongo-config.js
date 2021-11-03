@@ -10,5 +10,5 @@ db.collection("system").insertOne({
     _id: "HIERARCHY",
     data : {}
 }).then((doc) => {
-    console.log("Success")
+    console.log("Setup Successful")
 }).catch(err => { throw err })

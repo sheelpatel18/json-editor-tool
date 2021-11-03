@@ -8,6 +8,7 @@ class API {
     constructor(server, port=null) { 
         this.server = server;
         this.port = port;
+        this.schema = {}
     }
 
     addSchema(schema) {
@@ -21,8 +22,7 @@ class API {
             method: "get",
             url: options ? `${url}${route}${options}` : `${url}${route}`,
             headers: {
-                "Content-type" : "application/json",
-                "Authorization" : `Bearer ${this.access_token}`
+                "Content-type" : "application/json"
             }
         }
         const res = await axios(call)
@@ -35,8 +35,7 @@ class API {
             method: "post",
             url: options ? `${url}${route}${options}` : `${url}${route}`,
             headers: {
-                "Content-type" : "application/json",
-                "Authorization" : `Bearer ${this.access_token}`
+                "Content-type" : "application/json"
             },
             data : data
         }
@@ -50,8 +49,7 @@ class API {
             method: "put",
             url: options ? `${url}${route}${options}` : `${url}${route}`,
             headers: {
-                "Content-type" : "application/json",
-                "Authorization" : `Bearer ${this.access_token}`
+                "Content-type" : "application/json"
             },
             data : data ? data : this.schema
         }
@@ -65,8 +63,7 @@ class API {
             method: "delete",
             url: options ? `${url}${route}${options}` : `${url}${route}`,
             headers: {
-                "Content-type" : "application/json",
-                "Authorization" : `Bearer ${this.access_token}`
+                "Content-type" : "application/json"
             },
         }
         const res = await axios(call)

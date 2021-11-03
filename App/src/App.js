@@ -16,18 +16,24 @@ function App() {
   const [loadingSave, setLoadingSave] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [successAlert, setSuccessAlert] = useState(false);
+  const [description, setDescription] = useState(null);
+  if (api) console.log(api.schema)
+  //const route = metaData.route.copy()
+
   
   useEffect(() => {
     if (selectedNode && jsonRefNode) {
       const test = schemas[jsonRefNode[selectedNode]]
-      setJson(schemas[jsonRefNode[selectedNode]].data); 
-      setMetaData(schemas[jsonRefNode[selectedNode]]);
+      setJson(schemas[jsonRefNode[selectedNode]].data ? schemas[jsonRefNode[selectedNode]].data : {}); 
+      setMetaData(schemas[jsonRefNode[selectedNode]].metaData);
+      api.addSchema(schemas[jsonRefNode[selectedNode]]);
     }
   }, [selectedNode])
 
 
   useEffect(() => {
-    setApi(new API("http://74.208.178.82", "8092"))
+    setApi(new API("http://localhost", "8092"))
+    if (api) api.addSchema(metaData)
   }, [])
 
   const getHierarchy = async () => {
@@ -52,9 +58,22 @@ function App() {
 
   const handleChange = (edits) => {
     api.addSchema({
-      ...metaData,
+      metaData : {
+        ...api.schema.metaData
+      },
       data : {
         ...edits
+      }
+    })
+  }
+
+  const handleDescriptionChange = desc => {
+    setDescription(desc.target.value)
+    api.addSchema({
+      ...api.schema,
+      metaData : {
+        ...api.schema.metaData,
+        description : desc.target.value
       }
     })
   }
@@ -118,8 +137,8 @@ function App() {
 
   return (
     <div>
-      <Tree data={hierarchyData} selectedNode={selectedNode} setSelectedNode={setSelectedNode} setJsonRefNode={setJsonRefNode} handleNewRoute={handleNewRoute} handleNewJSON={handleNewJSON} metaData={metaData} setMetaData={setMetaData}/>
-      <Editor metaData={metaData} json={json} handleChange={handleChange} handleSave={handleSave} handleDelete={handleDelete} loadingSave={loadingSave} loadingDelete={loadingDelete} successAlert={successAlert} api={api}/>
+      <Tree data={hierarchyData} selectedNode={selectedNode} setSelectedNode={setSelectedNode} setJsonRefNode={setJsonRefNode} handleNewRoute={handleNewRoute} handleNewJSON={handleNewJSON} handleDescriptionChange={handleDescriptionChange} api={api} description={description}/>
+      <Editor json={json} handleChange={handleChange} handleSave={handleSave} handleDelete={handleDelete} loadingSave={loadingSave} loadingDelete={loadingDelete} successAlert={successAlert} metaData={metaData} api={api} />
     </div>
   );
 }

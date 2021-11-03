@@ -109,8 +109,10 @@ app.route("/schemas")
         try {
             schemas.insertOne({
                 data: req.body.data,
-                route: req.body.route,
-                request_type: req.body.request_type
+                metaData : {
+                    route: req.body.route,
+                    request_type: req.body.request_type
+                }
             }).then((doc) => {
                 updateHierarchy(req.body.route, req.body.request_type, ObjectId(doc.insertedId).toString())
                 res.status(200).json({ message: "SUCCESS" })
@@ -132,7 +134,7 @@ app.route("/schemas/:id")
     })
     .put((req, res) => {
         try {
-            schemas.updateOne({ _id: ObjectId(req.params.id) }, { $set: { data: req.body.data } }).then((doc) => {
+            schemas.updateOne({ _id: ObjectId(req.params.id) }, { $set: { metaData: {...req.body.metaData}, data : {...req.body.data} } }).then((doc) => {
                 console.log(doc)
                 res.status(200).json({ message: "SUCCESS" })
             }).catch(err => console.log(err))

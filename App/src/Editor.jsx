@@ -5,19 +5,11 @@ import 'jsoneditor-react/es/editor.min.css';
 import ace from 'brace';
 import 'brace/mode/json';
 import 'brace/theme/github';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { memo } from 'react';
 
 //const ajv = new Ajv({ allErrors: true, verbose: true });
 
-const schema = {
-    type: 'object',
-    properties: {
-        some: {
-            type: 'integer'
-        }
-    },
-    required: ['some']
-};
 
 function Editor(props) {
     const json = props.json
@@ -28,22 +20,25 @@ function Editor(props) {
     const loadingSave = props.loadingSave
     const loadingDelete = props.loadingDelete
     const successAlert = props.successAlert
-    const [showDescription, setShowDescription] = useState(false)
+    //const [showDescription, setShowDescription] = useState(false)
     const api = props.api
 
-    const JSONEditor = (props) => {
+    const JSONEditor = memo((props) => {
+        console.log("rerender")
+        useEffect(() => {
+            handleChange(props.json)
+        }, [])
         return (
         <JsonEditor 
             value={props.json}
             onChange={handleChange}
-            scehma={schema}
             mode="code"
             theme="ace/theme/github"
             ace={ace}
             htmlElementProps={{style: {height: 600}}}
         />
         )
-    }
+    })
 
     return json ? (
         <Paper sx={{ float: "right", width: "80%", maxHeight: "600px" }}>
@@ -65,4 +60,11 @@ function Editor(props) {
     ) : null
 }
 
-export default Editor;
+const editorMemo = memo(Editor, (prevProps, nextProps) => {
+    if (prevProps.json === nextProps.json) {
+      return true; // props are equal
+    }
+    return false; // props are not equal -> update the component
+  })
+
+export default editorMemo;

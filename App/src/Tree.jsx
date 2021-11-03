@@ -6,8 +6,9 @@ import TreeView from '@mui/lab/TreeView';
 import TreeItem, { treeItemClasses } from '@mui/lab/TreeItem';
 import Collapse from '@mui/material/Collapse';
 import { useSpring, animated } from 'react-spring';
-import { ButtonGroup, Paper, Button, TextField } from '@mui/material';
+import { ButtonGroup, Paper, Button, TextField, Typography } from '@mui/material';
 import useWindowSize from "./useWindowSize"
+import "./main.css"
 
 function MinusSquare(props) {
     return (
@@ -95,13 +96,24 @@ export default function Tree(props) {
     const metaData = props.metaData
     const setMetaData = props.setMetaData
     const height = window.innerHeight
+    const description = props.description
+    console.log(description)
+    const handleDescriptionChange = props.handleDescriptionChange
+    const api = props.api
+    //const [d, setD] = useState("")
     //const { height, width } = useWindowSize()
 
     const handleNodeSelect = (event, nodeId) => {
         if (actionNames.includes(event.target.innerText)) setSelected(nodeId)
     }
 
+    /*onst handleDescriptionChange = event => {
+        setDescription(event.target.value)
+        //setD(event.target.value)
+    }*/
+
     const GenerateTree = (data) => {
+        console.log("RERENDERED")
         var ref = []
         var count = 1
         const travserse = (data) => {
@@ -142,27 +154,32 @@ export default function Tree(props) {
                     New JSON
                 </Button>
             </ButtonGroup>
-        <TreeView
-            aria-label="customized"
-            defaultExpanded={['1']}
-            onNodeSelect = {handleNodeSelect}
-            defaultCollapseIcon={<MinusSquare />}
-            defaultExpandIcon={<PlusSquare />}
-            defaultEndIcon={<CloseSquare />}
-            sx={{ height: height-400, flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
-        >
-            {GenerateTree(data)}
-        </TreeView>
-        <TextField 
-            id="description"
-            label="Description"
-            multiline
-            fullWidth
-            autoFocus
-            minRows={12}
-            value={metaData?.description}
-            onChange={(e) => setMetaData({...metaData, description: e.target.value})}
-        />
+            <TreeView
+                aria-label="customized"
+                defaultExpanded={['1']}
+                onNodeSelect = {handleNodeSelect}
+                defaultCollapseIcon={<MinusSquare />}
+                defaultExpandIcon={<PlusSquare />}
+                defaultEndIcon={<CloseSquare />}
+                sx={{ height: height-400, flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
+            >
+                {GenerateTree(data)}
+            </TreeView>
+            <Typography variant="h6" sx={{ textAlign: "left" }}>
+                Description
+            </Typography>
+            <Paper sx={{ margin: "10px" }}>
+                <TextField 
+                    id="description"
+                    multiline
+                    autoFocus
+                    minRows={9}
+                    value={api?.schema?.metaData?.description || description}
+                    onChange={handleDescriptionChange}
+                    variant="outlined"
+                    fullWidth
+                />
+            </Paper>
         </Paper>
     ) : null
 }
