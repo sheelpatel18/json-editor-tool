@@ -1,18 +1,20 @@
 const express = require('express');
 const cors = require('cors')
 const { MongoClient, ObjectId } = require("mongodb");
-const client = new MongoClient("mongodb://localhost:27017/local");
+const config = require("../config.js")
+const client = new MongoClient(`mongodb://localhost:${config.DB_PORT}/local`);
 client.connect()
 const db = client.db("local")
 const system = db.collection("system")
 const schemas = db.collection("json")
+const PORT = config.SERVER_PORT || 8080
 
 const corsConfig = {
     "origin": "*",
     "methods": "*",
     "preflightContinue": false,
     "optionsSuccessStatus": 204,
-    "allowedHeaders": ["Content-Type", "Authorization"]
+    "allowedHeaders": ["Content-Type", "Authorization"] // might add user management in the future
 }
 
 const app = express();
@@ -167,4 +169,4 @@ app.route("/mock/*")
         }
     })
 
-app.listen(8092)
+app.listen(PORT)

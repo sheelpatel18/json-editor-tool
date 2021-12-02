@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "mongo-config": "concurrently \"mongod --dbpath Mongo/data/db\" \"node mongo-config.js\" \" mongod --port 27017 --shutdown \" ",
+    "mongo-config": "concurrently \"sudo mongod --dbpath Mongo/data/db\" \"node mongo-config.js\" ",
+    "testing": "kill $(lsof -t -i:27017)",
     "config": "npm install && npm --prefix ./App install --force && npm --prefix ./Server install && npm run mongo-config && npm --prefix ./App run prod-build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "concurrently \"mongod --dbpath Mongo/data/db\" \" npm --prefix ./App run prod\" \"npm --prefix ./Server start\""
@@ -22,6 +23,8 @@
   "homepage": "https://github.com/sheelpatel18/json-editor-tool#readme",
   "dependencies": {
     "concurrently": "^6.3.0",
-    "mongodb": "^4.1.3"
+    "dotenv": "^10.0.0",
+    "mongodb": "^4.1.3",
+    "node-key-sender": "^1.0.11"
   }
 }

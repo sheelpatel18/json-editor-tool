@@ -3,6 +3,12 @@ import API from './api';
 import Editor from './Editor';
 import Tree from './Tree';
 const axios = require('axios');
+const { SERVER_PORT, SSL, HOST } = require("../../config.js")
+
+/*
+TODO's:
+- Add global states 
+*/
 
 function App() {
   const [hierarchyData, setHierarchyData] = useState(null);
@@ -32,7 +38,7 @@ function App() {
 
 
   useEffect(() => {
-    setApi(new API("http://74.208.178.82", "8092"))
+    setApi(new API(`${SSL ? "https" : "http"}://${HOST}`, SERVER_PORT))
     if (api) api.addSchema(metaData)
   }, [])
 
