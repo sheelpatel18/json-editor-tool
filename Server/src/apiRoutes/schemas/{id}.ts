@@ -45,3 +45,5 @@ router.route("/") // id param
             res
         )
     })
+
+export default router

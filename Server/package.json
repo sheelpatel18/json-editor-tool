@@ -2,7 +2,7 @@
   "name": "json-editor-server",
   "version": "1.0.0",
   "description": "",
-  "main": "build/app.js",
+  "main": "build/Server/app.js",
   "scripts": {
     "start": "npm run build && node .",
     "build": "tsc"
@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/sheelpatel18/json-editor-server#readme",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.87.0",
+    "@aws-sdk/lib-dynamodb": "^3.87.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "mongodb": "^4.1.3",

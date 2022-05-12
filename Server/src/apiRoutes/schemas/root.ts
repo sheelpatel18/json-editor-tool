@@ -3,7 +3,11 @@ import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
 import { Document } from "../../ts/Database"
 
+import schemaIDParamRouter from "./{id}"
+
 const router : Router = express.Router()
+
+router.use("/:id", schemaIDParamRouter)
 
 router.route("/")
     .get((req: Request, res: Response) => {
@@ -29,3 +33,5 @@ router.route("/")
             res
         )
     })
+
+export default router

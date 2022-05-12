@@ -1,3 +1,6 @@
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+
 export enum DatabaseType {
     Mongo,
     Firestore,
@@ -20,6 +23,7 @@ interface DbIntegration {
 }
 
 class FirestoreIntegration implements DbIntegration {
+
     getAll(): Promise<Document[]> {
         throw new Error("Method not implemented.");
     }
@@ -42,10 +46,32 @@ class FirestoreIntegration implements DbIntegration {
 }
 
 class DynamoIntegration implements DbIntegration {
+    db : DynamoDBDocumentClient
+
+    constructor() {
+        const clientAPI : DynamoDBClient = new DynamoDBClient({ region : "us-east-1" }) // lazy init
+        const marshallOptions = {
+            convertEmptyValues: true,
+            removeUndefinedValues: false,
+            convertClassInstanceToMap: false,
+          }
+          const unmarshallOptions = {
+            wrapNumbers: true, 
+          }
+          const translateConfig = { marshallOptions, unmarshallOptions };
+          // auth stuff here
+          this.db = DynamoDBDocumentClient.from(clientAPI, translateConfig);
+    }
+
     getAll(): Promise<Document[]> {
         throw new Error("Method not implemented.");
     }
-    async add(json: object): Promise<Document> {
+    async add(data: object): Promise<Document> {
+        const params = {
+            TableName: "Documents",
+            Item: data
+        }
+        const result = await this.db.send(new PutCommand(params))
         throw new Error("Method not implemented.");
     }
     async edit(json: object, _id: string): Promise<Document> {
@@ -64,6 +90,9 @@ class DynamoIntegration implements DbIntegration {
 }
 
 class MongoIntegration implements DbIntegration {
+    init(clientAPI: any): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
     getAll(): Promise<Document[]> {
         throw new Error("Method not implemented.");
     }
@@ -98,7 +127,7 @@ class Database {
                     break;
                 case DatabaseType.DynamoDB:
                     this.type = dbType
-                    this.db = new DynamoIntegration();
+                    this.db = new DynamoIntegration()
                     break;
                 case DatabaseType.Mongo:
                     this.type = dbType

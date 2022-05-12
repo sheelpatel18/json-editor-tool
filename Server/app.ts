@@ -5,6 +5,11 @@ import https from 'https';
 import http from 'http';
 import { Document, DatabaseType } from './src/ts/Database';
 
+import hierarchyRouter from './src/apiRoutes/hierarchy/root';
+import schemasRouter from './src/apiRoutes/schemas/root';
+import mockRouter from './src/apiRoutes/mock/root';
+
+
 const corsConfig = {
     "origin": "*",
     "methods": "*",
@@ -20,11 +25,8 @@ const {
     DATABASE_TYPE
 } = settings;
 
-console.log(DATABASE_TYPE)
-console.log(DatabaseType.Firestore.toString())
-
 if (![DatabaseType.DynamoDB, DatabaseType.Firestore, DatabaseType.Mongo].map(type => type.toString()).includes(DATABASE_TYPE)) {
-    throw new Error("NOT A VALID DATABASE TYPE")
+    //throw new Error("NOT A VALID DATABASE TYPE")
 }
 
 Document.databaseInit(DATABASE_TYPE);
@@ -33,9 +35,9 @@ const app = express();
 app.use(express.json());
 app.use(cors(corsConfig))
 
-app.use("/hierarchy", require("./apiRoutes/hierarchy/root.js"));
-app.use("/mock/*", require("./apiRoutes/mock/root.js"));
-app.use("/schemas", require("./apiRoutes/schemas/root.js"));
+app.use("/hierarchy", hierarchyRouter);
+app.use("/mock/*", mockRouter);
+app.use("/schemas", schemasRouter);
 
 if (SSL) {
     https.createServer(app).listen(PORT, () => {
