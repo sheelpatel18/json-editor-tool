@@ -1,0 +1,6 @@
+{
+    "HOST" : "localhost",
+    "PORT" : "8080",
+    "SSL" : true,
+    "DATABASE_TYPE" : "Firestore"
+}
