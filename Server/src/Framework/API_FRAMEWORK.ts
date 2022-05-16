@@ -1,19 +1,17 @@
 import { Response } from "express";
-import { CustomError } from "./Errors";
+import { CustomError, INTERNAL_SERVER_ERROR } from "./Errors";
 
 
 export const API_FRAMEWORK = (func : Function, res : Response) : void => {
-    try {
-        func()
-    } catch (err : any) {
+    func().catch(err => {
         if (err instanceof CustomError) {
             err.respond(res)
         } else {
-            // internal server error
-            // ideally some additional logging here
+            new INTERNAL_SERVER_ERROR(err?.message).respond(res)
         }
-    }
+    })
 }
+
 /*
 
 This framework serves to serve as a single source of truth for how responses are constructued and for

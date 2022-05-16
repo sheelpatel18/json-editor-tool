@@ -29,7 +29,7 @@ if (![DatabaseType.DynamoDB, DatabaseType.Firestore, DatabaseType.Mongo].map(typ
     //throw new Error("NOT A VALID DATABASE TYPE")
 }
 
-Document.databaseInit(DATABASE_TYPE);
+Document.databaseInit(DATABASE_TYPE)
 
 const app = express();
 app.use(express.json());

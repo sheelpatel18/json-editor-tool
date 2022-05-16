@@ -5,7 +5,8 @@
   "main": "build/Server/app.js",
   "scripts": {
     "start": "npm run build && node .",
-    "build": "tsc"
+    "build": "tsc",
+    "lazy-start" : "node ."
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.87.0",
     "@aws-sdk/lib-dynamodb": "^3.87.0",
+    "bson-objectid": "^2.0.3",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "mongodb": "^4.1.3",

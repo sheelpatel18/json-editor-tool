@@ -2,7 +2,9 @@ import { Response } from "express";
 import { API_RESPONSE } from "./API_RESPONSE";
 
 export enum ERROR_TYPE {
-
+    NOT_FOUND = "NOT_FOUND",
+    BAD_REQUEST = "BAD_REQUEST",
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
 }
 
 const validHTTPStatusCodes = [
@@ -45,17 +47,18 @@ const validHTTPStatusCodes = [
     511
 ]
 
-export class CustomError extends Error {
+export class CustomError {
     type: ERROR_TYPE;
-    status : string
     code : number; // although this could be wrapped in with the enum, I opted to keep it in a separate field
+    status : string
+    message : string
 
-    protected constructor(type: ERROR_TYPE, message: string, status : string, HTTP_STATUS: number) {
+    protected constructor(type: ERROR_TYPE, message: string, HTTP_STATUS: number) {
         if (!validHTTPStatusCodes.includes(HTTP_STATUS)) throw new Error("HTTP status code is not valid")
-        super(message);
+        this.message = message
         this.type = type;
-        this.status = status;
         this.code = HTTP_STATUS;
+        this.status = this.type.toString()
     }
 
     respond(res: Response) : void {
@@ -63,3 +66,20 @@ export class CustomError extends Error {
     } // used to send express api response to client
 }
 
+export class NOT_FOUND extends CustomError {
+    constructor(message: string) {
+        super(ERROR_TYPE.NOT_FOUND, message, 404)
+    }
+}
+
+export class BAD_REQUEST extends CustomError {
+    constructor(message: string) {
+        super(ERROR_TYPE.BAD_REQUEST, message, 400)
+    }
+}
+
+export class INTERNAL_SERVER_ERROR extends CustomError {
+    constructor(message: string) {
+        super(ERROR_TYPE.INTERNAL_SERVER_ERROR, message, 500)
+    }
+}

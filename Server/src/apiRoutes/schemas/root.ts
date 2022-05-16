@@ -5,9 +5,9 @@ import { Document } from "../../ts/Database"
 
 import schemaIDParamRouter from "./{id}"
 
-const router : Router = express.Router()
+const router : Router = express.Router({mergeParams: true})
 
-router.use("/:id", schemaIDParamRouter)
+router.use("/:_id", schemaIDParamRouter)
 
 router.route("/")
     .get((req: Request, res: Response) => {
@@ -23,11 +23,11 @@ router.route("/")
         API_FRAMEWORK(
             async () => {
                 const {
-                    data
+                    json
                 } : {
-                    data : object
+                    json : object
                 } = req.body
-                const newDoc : Document = await Document.new(data)
+                const newDoc : Document = await Document.new(json)
                 API_RESPONSE.CREATED(newDoc.json).send(res)
             },
             res

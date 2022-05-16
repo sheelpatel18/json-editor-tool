@@ -1,5 +1,7 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { CreateTableCommand, CreateTableCommandInput, DynamoDBClient, ListTablesCommand, ListTablesCommandOutput, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, GetCommandInput, GetCommandOutput, PutCommand, PutCommandInput, PutCommandOutput, UpdateCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
+import BSON_ID from "bson-objectid";
+import { NOT_FOUND } from "../Framework/Errors";
 
 export enum DatabaseType {
     Mongo,
@@ -8,9 +10,9 @@ export enum DatabaseType {
 }
 
 export enum DOCUMENT_STATUS {
-    DELETED,
-    CLEAN,
-    DIRTY // not used, but kept for future use if caching is implemented
+    DELETED = "DELETED",
+    CLEAN = "CLEAN",
+    DIRTY = "DIRTY" // not used, but kept for future use if caching is implemented
 }
 
 interface DbIntegration {
@@ -49,42 +51,125 @@ class DynamoIntegration implements DbIntegration {
     db : DynamoDBDocumentClient
 
     constructor() {
-        const clientAPI : DynamoDBClient = new DynamoDBClient({ region : "us-east-1" }) // lazy init
+        const clientAPI : DynamoDBClient = new DynamoDBClient(
+            { 
+                region : "us-east-1",
+                credentials: {
+                    accessKeyId: 'AKIAZDIDMEIIE7PPDBPA',
+                    secretAccessKey: '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'
+                }
+            }
+            ) // lazy init
         const marshallOptions = {
             convertEmptyValues: true,
-            removeUndefinedValues: false,
+            removeUndefinedValues: true,
             convertClassInstanceToMap: false,
           }
           const unmarshallOptions = {
-            wrapNumbers: true, 
+            wrapNumbers: false, 
+            removeUndefinedValues: true,
           }
           const translateConfig = { marshallOptions, unmarshallOptions };
           // auth stuff here
           this.db = DynamoDBDocumentClient.from(clientAPI, translateConfig);
     }
 
+    async init() : Promise<DynamoIntegration> { // returns same instance for method chaining
+        // create system and document table
+
+        const allTables = (await this.db.send(new ListTablesCommand({}))).TableNames
+
+        const systemParams : CreateTableCommandInput = {
+            TableName: "JSON_EDITOR_System",
+            KeySchema: [
+                { AttributeName: "_id", KeyType: "HASH" }
+            ],
+            AttributeDefinitions: [
+                { AttributeName: "_id", AttributeType: "S" }
+            ],
+            ProvisionedThroughput: {
+                ReadCapacityUnits: 1,
+                WriteCapacityUnits: 1
+            }
+        }
+        const documentParams : CreateTableCommandInput = {
+            TableName: "JSON_EDITOR_Documents",
+            KeySchema: [
+                { AttributeName: "_id", KeyType: "HASH" }
+            ],
+            AttributeDefinitions: [
+                { AttributeName: "_id", AttributeType: "S" }
+            ],
+            ProvisionedThroughput: {
+                ReadCapacityUnits: 1,
+                WriteCapacityUnits: 1
+            }
+        }
+        if (!allTables.includes("JSON_EDITOR_System")) await this.db.send(new CreateTableCommand(systemParams))
+        if (!allTables.includes("JSON_EDITOR_Documents")) await this.db.send(new CreateTableCommand(documentParams))
+
+        // create hierarchy document
+        const hierarchyParams : PutCommandInput = {
+            TableName: "JSON_EDITOR_System",
+            Item: {
+                _id: "HIERARCHY",
+                hierarchy : {}
+            }
+        }
+        await this.db.send(new PutCommand(hierarchyParams))
+        return this
+    }
+
     getAll(): Promise<Document[]> {
         throw new Error("Method not implemented.");
     }
-    async add(data: object): Promise<Document> {
-        const params = {
-            TableName: "Documents",
+    async add(data: any): Promise<Document> { // forced insert, no checks. Use wisely
+        const _id : string = data?._id
+        if (!_id) throw new Error("_id cannot be null")
+        const params : PutCommandInput = {
+            TableName: "JSON_EDITOR_Documents",
             Item: data
         }
         const result = await this.db.send(new PutCommand(params))
-        throw new Error("Method not implemented.");
+        return await this.get(_id)
     }
-    async edit(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
+    async edit(data: any, _id: string): Promise<Document> { //really just replacing. No checks. Use wisely
+        if (!_id) throw new Error("_id cannot be null")
+        const params : PutCommandInput = {
+            TableName: "JSON_EDITOR_Documents",
+            Item: data
+        }
+        const result = await this.db.send(new PutCommand(params))
+        return await this.get(_id)
     }
     async delete(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
+        if (!_id) throw new Error("_id cannot be null")
+        const document : Document = await this.get(_id)
+        const params : UpdateCommandInput = {
+            TableName: "JSON_EDITOR_Documents",
+            Key: {
+                _id : _id
+            }
+        }
+        const result = await this.db.send(new DeleteCommand(params))
+        document.status = DOCUMENT_STATUS.DELETED
+        return document
+
     }
     async replace(json: object, _id: string): Promise<Document> {
         throw new Error("Method not implemented.");
     }
     async get(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
+        if (!_id) throw new Error("_id cannot be null")
+        const params : GetCommandInput = {
+            TableName: "JSON_EDITOR_Documents",
+            Key: {
+                _id : _id
+            }
+        }
+        const result : object = (await this.db.send(new GetCommand(params))).Item
+        if (!result) throw new NOT_FOUND("Document with that ID does not exist")
+        return new Document(result)
     }
 
 }
@@ -118,7 +203,7 @@ class Database {
     static db: DbIntegration;
     static type: DatabaseType;
 
-    static init(dbType: DatabaseType | string = null): DbIntegration {
+    static async init(dbType: DatabaseType | string = null): Promise<DbIntegration> {
         if (!this.db) {
             switch (dbType) {
                 case DatabaseType.Firestore:
@@ -127,7 +212,7 @@ class Database {
                     break;
                 case DatabaseType.DynamoDB:
                     this.type = dbType
-                    this.db = new DynamoIntegration()
+                    this.db = await new DynamoIntegration().init()
                     break;
                 case DatabaseType.Mongo:
                     this.type = dbType
@@ -139,7 +224,7 @@ class Database {
                     break;
                 case "DynamoDB":
                     this.type = DatabaseType.DynamoDB
-                    this.db = new DynamoIntegration()
+                    this.db = await new DynamoIntegration().init()
                     break;
                 case "Mongo":
                     this.type = DatabaseType.Mongo
@@ -160,12 +245,16 @@ export class Document {
     metaData: any
     _id: string
 
-    private constructor() {
-
+    constructor(data : any) { 
+        this.json = data.data
+        this.metaData = data.metaData
+        this.status = DOCUMENT_STATUS.CLEAN
+        this._id = data._id
     }
 
     async update(): Promise<Document> { // returns new document instance with updated data
         return await Database.db.edit({
+            _id : this._id,
             data: this.json,
             metaData: this.metaData
         }, this._id)
@@ -175,7 +264,7 @@ export class Document {
         return await Database.db.delete(this._id)
     }
 
-    edit(json: object, metaData: any = null): Document { // returns same instance to support method chaining
+    edit(json: object, metaData: any = null): Document { 
         this.json = json
         if (metaData) this.metaData = metaData
         this.status = DOCUMENT_STATUS.DIRTY
@@ -187,13 +276,14 @@ export class Document {
             _id: this._id,
             json: this.json,
             metaData: this.metaData,
-            status: this.status.toString()
+            status: this.status.toLocaleString()
         }
     }
 
     static async new(json: object): Promise<Document> {
         return await Database.db.add({
-            data: json,
+            _id : Document.generateID(),
+            json: json,
             metaData: Document.getDefaultMetaData()
         })
     }
@@ -210,42 +300,23 @@ export class Document {
         return await Database.db.getAll()
     }
 
-    static generate(): Document {
-        switch (Database.type) {
-            case DatabaseType.Firestore:
-                return Document.firebase()
-                break;
-            case DatabaseType.DynamoDB:
-                return Document.dynamo()
-                break;
-            case DatabaseType.Mongo:
-                return Document.mongo()
-                break;
-            default:
-                throw new Error("Database type is not valid");
-        }
-    }
-
-    private static firebase(): Document {
-        return new Document()
-    }
-
-    private static dynamo(): Document {
-        return new Document()
-    }
-
-    private static mongo(): Document {
-        return new Document()
-    }
-
     private static getDefaultMetaData(): object {
         return {
 
         }
     }
 
-    static databaseInit(type: DatabaseType | string): void {
-        Database.init(type)
+    private static generateID() : string {
+        return BSON_ID().toHexString()
     }
+
+    static async databaseInit(type: DatabaseType | string): Promise<void> {
+        await Database.init(type)
+    }
+
+    /* these are protected because they are really only intended to be used by a database integration object. The standard I decided to use is to 
+    create an implicity defined subclass to access this command within the database object. Although it does add some more code, it separates functionality
+    a bit better. There's already a lot going on in this class.
+    */
 
 }

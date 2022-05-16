@@ -1,6 +1,6 @@
 {
     "HOST" : "localhost",
-    "PORT" : "5000",
+    "PORT" : "9000",
     "SSL" : false,
-    "DATABASE_TYPE" : "Firestore" // Firestore, DynamoDB, or Mongo
+    "DATABASE_TYPE" : "DynamoDB"
 }

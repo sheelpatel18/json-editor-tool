@@ -1,9 +1,10 @@
 import express, { Router, Request, Response } from "express"
+import { BAD_REQUEST } from "../../Framework/Errors"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
 import { Document } from "../../ts/Database"
 
-const router : Router = express.Router()
+const router : Router = express.Router({mergeParams: true})
 
 router.route("/") // id param
     .get((req: Request, res: Response) => {
@@ -27,8 +28,8 @@ router.route("/") // id param
                     json : object,
                     metaData : any
                 } = req.body
-                const document = await Document.get(_id)
-                await document.edit(json, metaData).update()
+                let document = await Document.get(_id)
+                document = await document.edit(json, metaData).update()
                 API_RESPONSE.OK(document.parse()).send(res)
             },
             res
