@@ -55,8 +55,6 @@ class DynamoIntegration implements DbIntegration {
             { 
                 region : "us-east-1",
                 credentials: {
-                    accessKeyId: 'AKIAZDIDMEIIE7PPDBPA',
-                    secretAccessKey: '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'
                 }
             }
             ) // lazy init
