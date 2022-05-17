@@ -3,7 +3,7 @@ import cors from 'cors';
 import settings from "../settings.json"
 import https from 'https';
 import http from 'http';
-import { Document, DatabaseType } from './src/ts/Database';
+import { Document, DatabaseType } from './src/Database';
 
 import hierarchyRouter from './src/apiRoutes/hierarchy/root';
 import schemasRouter from './src/apiRoutes/schemas/root';

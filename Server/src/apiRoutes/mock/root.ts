@@ -1,8 +1,8 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document } from "../../ts/Database"
-import { getJSONFromPath } from "../../ts/functions"
+import { Document } from "../../Database"
+import { getJSONFromPath } from "../../functions"
 
 const router: Router = express.Router()
 

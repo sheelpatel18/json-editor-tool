@@ -2,5 +2,7 @@
     "HOST" : "localhost",
     "PORT" : "9000",
     "SSL" : false,
-    "DATABASE_TYPE" : "DynamoDB"
+    "DATABASE_TYPE" : "DynamoDB",
+    "AWS_ACCESS_KEY_ID" : "AKIAZDIDMEIIE7PPDBPA",
+    "AWS_SECRET_ACCESS_KEY" : "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"
 }

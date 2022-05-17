@@ -1,7 +1,7 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document } from "../../ts/Database"
+import { Document } from "../../Database"
 
 import schemaIDParamRouter from "./{id}"
 
@@ -14,7 +14,7 @@ router.route("/")
         API_FRAMEWORK(
             async () => {
                 const allDocuments : Document[] = await Document.getAll()
-                API_RESPONSE.OK(allDocuments.map(doc => doc.json)).send(res)
+                API_RESPONSE.OK(allDocuments.map(doc => doc.parse())).send(res)
             },
             res
         )

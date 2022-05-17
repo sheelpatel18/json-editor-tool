@@ -1,7 +1,9 @@
-import { CreateTableCommand, CreateTableCommandInput, DynamoDBClient, ListTablesCommand, ListTablesCommandOutput, PutItemCommand } from "@aws-sdk/client-dynamodb";
-import { DeleteCommand, DynamoDBDocumentClient, GetCommand, GetCommandInput, GetCommandOutput, PutCommand, PutCommandInput, PutCommandOutput, UpdateCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
+import { CreateTableCommand, CreateTableCommandInput, DynamoDBClient, ListTablesCommand, ListTablesCommandOutput, PutItemCommand, QueryCommand, ScanCommand, ScanCommandInput } from "@aws-sdk/client-dynamodb";
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, GetCommandInput, GetCommandOutput, PutCommand, PutCommandInput, PutCommandOutput, QueryCommandInput, TranslateConfig, UpdateCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
 import BSON_ID from "bson-objectid";
-import { NOT_FOUND } from "../Framework/Errors";
+import { NOT_FOUND } from "./Framework/Errors";
+import settings from "../../settings.json"
+const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = settings
 
 export enum DatabaseType {
     Mongo,
@@ -22,9 +24,13 @@ interface DbIntegration {
     replace(documentData: object, _id: string): Promise<Document>; // functionaly similar to add, but a seperate method implies the intent
     get(_id: string): Promise<Document>;
     getAll(): Promise<Document[]>;
+    getHierarchyDocument() : Promise<Document>
 }
 
 class FirestoreIntegration implements DbIntegration {
+    getHierarchyDocument(): Promise<Document> {
+        throw new Error("Method not implemented.");
+    }
 
     getAll(): Promise<Document[]> {
         throw new Error("Method not implemented.");
@@ -55,21 +61,31 @@ class DynamoIntegration implements DbIntegration {
             { 
                 region : "us-east-1",
                 credentials: {
+                    accessKeyId: AWS_ACCESS_KEY_ID,
+                    secretAccessKey: AWS_SECRET_ACCESS_KEY
                 }
             }
             ) // lazy init
         const marshallOptions = {
             convertEmptyValues: true,
             removeUndefinedValues: true,
-            convertClassInstanceToMap: false,
+            convertClassInstanceToMap: false
           }
           const unmarshallOptions = {
             wrapNumbers: false, 
-            removeUndefinedValues: true,
           }
-          const translateConfig = { marshallOptions, unmarshallOptions };
-          // auth stuff here
+          const translateConfig : TranslateConfig = { marshallOptions, unmarshallOptions };
           this.db = DynamoDBDocumentClient.from(clientAPI, translateConfig);
+    }
+    async getHierarchyDocument(): Promise<Document> {
+        const params : GetCommandInput = {
+            TableName: "JSON_EDITOR_System",
+            Key: {
+                _id : "HIERARCHY"
+            }
+        }
+        const result : object = (await this.db.send(new GetCommand(params))).Item
+        return result ? new Document(result) : null
     }
 
     async init() : Promise<DynamoIntegration> { // returns same instance for method chaining
@@ -111,15 +127,19 @@ class DynamoIntegration implements DbIntegration {
             TableName: "JSON_EDITOR_System",
             Item: {
                 _id: "HIERARCHY",
-                hierarchy : {}
+                json : {}
             }
         }
-        await this.db.send(new PutCommand(hierarchyParams))
+        if (!this.getHierarchyDocument()) await this.db.send(new PutCommand(hierarchyParams))
         return this
     }
 
-    getAll(): Promise<Document[]> {
-        throw new Error("Method not implemented.");
+    async getAll(): Promise<Document[]> {
+        const params : ScanCommandInput = {
+            TableName: "JSON_EDITOR_Documents"
+        }
+        const result : Array<any> = (await this.db.send(new ScanCommand(params))).Items
+        return await Promise.all(result.map(async item => this.get(item._id.S))) // temp solution until I can figure out how to get the data to unmarshall correctly
     }
     async add(data: any): Promise<Document> { // forced insert, no checks. Use wisely
         const _id : string = data?._id
@@ -173,6 +193,9 @@ class DynamoIntegration implements DbIntegration {
 }
 
 class MongoIntegration implements DbIntegration {
+    getHierarchyDocument(): Promise<Document> {
+        throw new Error("Method not implemented.");
+    }
     init(clientAPI: any): Promise<void> {
         throw new Error("Method not implemented.");
     }
@@ -244,7 +267,7 @@ export class Document {
     _id: string
 
     constructor(data : any) { 
-        this.json = data.data
+        this.json = data.json
         this.metaData = data.metaData
         this.status = DOCUMENT_STATUS.CLEAN
         this._id = data._id
@@ -291,7 +314,7 @@ export class Document {
     }
 
     static async getHierarchyDocument(): Promise<Document> {
-        return await Database.db.get("HIERARCHY")
+        return await Database.db.getHierarchyDocument()
     }
 
     static async getAll(): Promise<Document[]> {
