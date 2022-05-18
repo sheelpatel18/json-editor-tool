@@ -417,16 +417,17 @@ export class Hierarchy {
         return new Hierarchy(await this.doc.update())
     }
     
-    async getJSONFromPath(route : string, type : ROUTE_TYPES) : Promise<object> {
+    static async getJSONFromPath(route : string, type : string) : Promise<object> {
+        const hierarchy = await Hierarchy.get()
         if (!route) throw new Error("Route cannot be null")
         if (!type) throw new Error("Type cannot be null")
-        let target = this.doc.json
+        let target = hierarchy.doc.json
         const routeArray : string[] = route.split("/").slice(1)
         routeArray.forEach((path, index) => {
             if (!target[path]) throw new Error("Route does not exist")
             target = target[path]
         })
-        const _id : string = target[type.toString()]
+        const _id : string = target[type]
         return (await Document.get(_id)).json
     }
 

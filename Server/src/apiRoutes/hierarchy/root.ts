@@ -1,7 +1,7 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document, Hierarchy } from "../../Database"
+import { Hierarchy } from "../../Database"
 
 const router: Router = express.Router()
 

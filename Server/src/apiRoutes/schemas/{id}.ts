@@ -1,5 +1,4 @@
 import express, { Router, Request, Response } from "express"
-import { BAD_REQUEST } from "../../Framework/Errors"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
 import { Document } from "../../Database"
