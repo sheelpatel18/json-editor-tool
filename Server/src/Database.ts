@@ -25,9 +25,13 @@ interface DbIntegration {
     get(_id: string): Promise<Document>;
     getAll(): Promise<Document[]>;
     getHierarchyDocument() : Promise<Document>
+    editHierarchyDocument(hierarchyData: object) : Promise<Document>
 }
 
 class FirestoreIntegration implements DbIntegration {
+    editHierarchyDocument(hierarchyData: object): Promise<Document> {
+        throw new Error("Method not implemented.");
+    }
     getHierarchyDocument(): Promise<Document> {
         throw new Error("Method not implemented.");
     }
@@ -76,6 +80,14 @@ class DynamoIntegration implements DbIntegration {
           }
           const translateConfig : TranslateConfig = { marshallOptions, unmarshallOptions };
           this.db = DynamoDBDocumentClient.from(clientAPI, translateConfig);
+    }
+    async editHierarchyDocument(data: object): Promise<Document> {
+        const params : PutCommandInput = {
+            TableName: "JSON_EDITOR_System",
+            Item: data
+        }
+        const result = await this.db.send(new PutCommand(params))
+        return await this.getHierarchyDocument()
     }
     async getHierarchyDocument(): Promise<Document> {
         const params : GetCommandInput = {
@@ -130,7 +142,8 @@ class DynamoIntegration implements DbIntegration {
                 json : {}
             }
         }
-        if (!this.getHierarchyDocument()) await this.db.send(new PutCommand(hierarchyParams))
+        if (! await this.getHierarchyDocument()) await this.db.send(new PutCommand(hierarchyParams))
+
         return this
     }
 
@@ -193,6 +206,9 @@ class DynamoIntegration implements DbIntegration {
 }
 
 class MongoIntegration implements DbIntegration {
+    editHierarchyDocument(hierarchyData: object): Promise<Document> {
+        throw new Error("Method not implemented.");
+    }
     getHierarchyDocument(): Promise<Document> {
         throw new Error("Method not implemented.");
     }
@@ -261,6 +277,8 @@ class Database {
 }
 
 export class Document {
+    route : string
+    type : ROUTE_TYPES
     json: object
     status: DOCUMENT_STATUS
     metaData: any
@@ -270,13 +288,30 @@ export class Document {
         this.json = data.json
         this.metaData = data.metaData
         this.status = DOCUMENT_STATUS.CLEAN
+        this.route = data?.route
+        this.type = data?.type ? Document.getType(data.type) : null
         this._id = data._id
+    }
+
+    private static getType(type : string) : ROUTE_TYPES {
+        switch (type) {
+            case "POST": 
+                return ROUTE_TYPES.POST
+            case "GET":
+                return ROUTE_TYPES.GET
+            case "PUT":
+                return ROUTE_TYPES.PUT
+            case "DELETE":
+                return ROUTE_TYPES.DELETE
+            default:
+                throw new Error("Type is not valid")
+        }
     }
 
     async update(): Promise<Document> { // returns new document instance with updated data
         return await Database.db.edit({
             _id : this._id,
-            data: this.json,
+            json: this.json,
             metaData: this.metaData
         }, this._id)
     }
@@ -301,20 +336,18 @@ export class Document {
         }
     }
 
-    static async new(json: object): Promise<Document> {
+    static async new(json: object, route : string, type : string): Promise<Document> {
         return await Database.db.add({
             _id : Document.generateID(),
             json: json,
-            metaData: Document.getDefaultMetaData()
+            metaData: Document.getDefaultMetaData(),
+            route: route,
+            type: type
         })
     }
 
     static async get(_id: string): Promise<Document> {
         return await Database.db.get(_id)
-    }
-
-    static async getHierarchyDocument(): Promise<Document> {
-        return await Database.db.getHierarchyDocument()
     }
 
     static async getAll(): Promise<Document[]> {
@@ -354,7 +387,7 @@ export class Hierarchy {
 
     // returns hierarchy instance
     static async get(): Promise<Hierarchy> {
-        return new Hierarchy(await Document.getHierarchyDocument())
+        return new Hierarchy(await  Database.db.getHierarchyDocument())
     }
 
     // adds empty route to the hierarchy
@@ -391,9 +424,6 @@ export class Hierarchy {
         const routeArray : string[] = route.split("/").slice(1)
         routeArray.forEach((path, index) => {
             if (!target[path]) target[path] = {} // automatically create route if it does not exist
-            if (index == routeArray.length - 1) {
-                target[path][type] = {}
-            }
             target = target[path]
         })
         target[type.toString()] = documentID
@@ -414,7 +444,7 @@ export class Hierarchy {
     }
 
     async update() : Promise<Hierarchy> {
-        return new Hierarchy(await this.doc.update())
+        return new Hierarchy(await Database.db.editHierarchyDocument(this.doc.parse()))
     }
     
     static async getJSONFromPath(route : string, type : string) : Promise<object> {
