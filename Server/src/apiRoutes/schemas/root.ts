@@ -1,7 +1,7 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document } from "../../Database"
+import { Document, Hierarchy, ROUTE_TYPES } from "../../Database"
 
 import schemaIDParamRouter from "./{id}"
 
@@ -22,12 +22,35 @@ router.route("/")
     .post((req: Request, res: Response) => {
         API_FRAMEWORK(
             async () => {
-                const {
-                    json
+                let {
+                    json,
+                    route,
+                    type
                 } : {
-                    json : object
+                    json : object,
+                    route : string,
+                    type : string
                 } = req.body
+                let typeEnum : ROUTE_TYPES
+                switch (type) {
+                    case "GET":
+                        typeEnum = ROUTE_TYPES.GET
+                        break;
+                    case "POST":
+                        typeEnum = ROUTE_TYPES.POST
+                        break;
+                    case "PUT":
+                        typeEnum = ROUTE_TYPES.PUT
+                        break;
+                    case "DELETE":
+                        typeEnum = ROUTE_TYPES.DELETE
+                        break;
+                    default:
+                        throw new Error("TYPE NOT SUPPORTED")
+                }
                 const newDoc : Document = await Document.new(json)
+                const hierarchy : Hierarchy = await Hierarchy.get()
+                await hierarchy.addDocument(route, typeEnum, newDoc._id).update()
                 API_RESPONSE.CREATED(newDoc.json).send(res)
             },
             res

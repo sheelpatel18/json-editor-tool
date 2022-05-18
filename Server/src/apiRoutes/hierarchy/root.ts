@@ -1,8 +1,7 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document } from "../../Database"
-import { updateHierarchy } from "../../functions"
+import { Document, Hierarchy } from "../../Database"
 
 const router: Router = express.Router()
 
@@ -10,7 +9,7 @@ router.route("/")
     .get((req: Request, res: Response) => {
         API_FRAMEWORK(
             async () => {
-                const json = (await Document.getHierarchyDocument())
+                const json = (await Hierarchy.get()).doc.json
                 API_RESPONSE.OK(json).send(res)
             },
             res
@@ -19,10 +18,11 @@ router.route("/")
     .post((req: Request, res: Response) => {
         API_FRAMEWORK(
             async () => {
-                const route : string = req.body.route as string
+                const route = req.query.route as string
                 if (!route) {} // throw something
-                const hierarchy : Document = await updateHierarchy(route)
-                API_RESPONSE.CREATED(hierarchy.json).send(res)
+                const hierarchy : Hierarchy = await Hierarchy.get()
+                await hierarchy.addRoute(route).update()
+                API_RESPONSE.CREATED(hierarchy.doc.json).send(res)
             },
             res
         )
@@ -32,8 +32,9 @@ router.route("/")
             async () => {
                 const route = req.query.route as string
                 if (!route) {} // throw something
-                const hierarchy : Document = await updateHierarchy(route, "ROUTE", null, true)
-                API_RESPONSE.CREATED(hierarchy.json).send(res)
+                const hierarchy : Hierarchy = await Hierarchy.get()
+                await hierarchy.removeRoute(route).update()
+                API_RESPONSE.CREATED(hierarchy.doc.json).send(res)
             },
             res
         )

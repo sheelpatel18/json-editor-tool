@@ -335,9 +335,99 @@ export class Document {
         await Database.init(type)
     }
 
-    /* these are protected because they are really only intended to be used by a database integration object. The standard I decided to use is to 
-    create an implicity defined subclass to access this command within the database object. Although it does add some more code, it separates functionality
-    a bit better. There's already a lot going on in this class.
-    */
+}
+
+export enum ROUTE_TYPES {
+    POST = "POST",
+    GET = "GET",
+    PUT = "PUT",
+    DELETE = "DELETE",
+    PATCH = "PATCH"
+}
+
+export class Hierarchy {
+    doc : Document
+
+    private constructor(doc : Document) {
+        this.doc = doc
+    }
+
+    // returns hierarchy instance
+    static async get(): Promise<Hierarchy> {
+        return new Hierarchy(await Document.getHierarchyDocument())
+    }
+
+    // adds empty route to the hierarchy
+    addRoute(route : string) : Hierarchy {
+        if (!route) throw new Error("Route cannot be null")
+        let target = this.doc.json
+        const routeArray : string[] = route.split("/").slice(1)
+        routeArray.forEach(path => {
+            if (!target[path]) target[path] = {}
+            target = target[path]
+        })
+        return this
+    }
+
+    // remove route from hierarchy along with all documents in that route
+    removeRoute(route : string) : Hierarchy {
+        if (!route) throw new Error("Route cannot be null")
+        let target = this.doc.json
+        const routeArray : string[] = route.split("/").slice(1)
+        routeArray.forEach((path, index) => {
+            if (!target[path]) throw new Error("Route does not exist")
+            if (index == routeArray.length - 1) {
+                delete target[path]
+            }
+            target = target[path]
+        })
+        return this
+    }
+
+    addDocument(route : string, type : ROUTE_TYPES, documentID : string) : Hierarchy {
+        if (!route) throw new Error("Route cannot be null")
+        if (!type) throw new Error("Type cannot be null")
+        let target = this.doc.json
+        const routeArray : string[] = route.split("/").slice(1)
+        routeArray.forEach((path, index) => {
+            if (!target[path]) target[path] = {} // automatically create route if it does not exist
+            if (index == routeArray.length - 1) {
+                target[path][type] = {}
+            }
+            target = target[path]
+        })
+        target[type.toString()] = documentID
+        return this
+    }
+
+    removeDocument(route : string, type : ROUTE_TYPES) : Hierarchy {
+        if (!route) throw new Error("Route cannot be null")
+        if (!type) throw new Error("Type cannot be null")
+        let target = this.doc.json
+        const routeArray : string[] = route.split("/").slice(1)
+        routeArray.forEach((path, index) => {
+            if (!target[path]) throw new Error("Route does not exist")
+            target = target[path]
+        })
+        delete target[type.toString()]
+        return this
+    }
+
+    async update() : Promise<Hierarchy> {
+        return new Hierarchy(await this.doc.update())
+    }
+    
+    async getJSONFromPath(route : string, type : ROUTE_TYPES) : Promise<object> {
+        if (!route) throw new Error("Route cannot be null")
+        if (!type) throw new Error("Type cannot be null")
+        let target = this.doc.json
+        const routeArray : string[] = route.split("/").slice(1)
+        routeArray.forEach((path, index) => {
+            if (!target[path]) throw new Error("Route does not exist")
+            target = target[path]
+        })
+        const _id : string = target[type.toString()]
+        return (await Document.get(_id)).json
+    }
 
 }
