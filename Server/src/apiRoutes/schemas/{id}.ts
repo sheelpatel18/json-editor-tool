@@ -1,7 +1,7 @@
 import express, { Router, Request, Response } from "express"
 import { API_FRAMEWORK } from "../../Framework/API_FRAMEWORK"
 import { API_RESPONSE } from "../../Framework/API_RESPONSE"
-import { Document } from "../../Database"
+import { Document, Hierarchy } from "../../Database"
 
 const router : Router = express.Router({mergeParams: true})
 
@@ -24,7 +24,7 @@ router.route("/") // id param
                     json,
                     metaData
                 } : {
-                    json : object,
+                    json : any,
                     metaData : any
                 } = req.body
                 let document = await Document.get(_id)
@@ -40,6 +40,8 @@ router.route("/") // id param
                 const _id = req.params._id as string
                 let document = await Document.get(_id)
                 document = await document.delete() // new document instance with deleted flag set
+                const hierarchy : Hierarchy = await Hierarchy.get()
+                hierarchy.removeDocument(document.route, document.type).update()
                 API_RESPONSE.OK(document.parse()).send(res)
             },
             res

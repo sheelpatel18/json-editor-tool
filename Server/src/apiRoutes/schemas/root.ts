@@ -48,7 +48,7 @@ router.route("/")
                     default:
                         throw new Error("TYPE NOT SUPPORTED")
                 }
-                const newDoc : Document = await Document.new(json)
+                const newDoc : Document = await Document.new(json, route, type)
                 const hierarchy : Hierarchy = await Hierarchy.get()
                 await hierarchy.addDocument(route, typeEnum, newDoc._id).update()
                 API_RESPONSE.CREATED(newDoc.json).send(res)
