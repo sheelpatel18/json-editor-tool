@@ -12,3 +12,10 @@ This tool was initially designed to be used with a local MongoDB database. Howev
 
 
 **Using a local MongoDB database**
+- This tool was intitially designed to be used with a local MongoDB database. It still can work with a local MongoDB database, but it is not recommended.
+- To use a local MongoDB database, you must have MongoDB installed on your computer. You can download it here: https://www.mongodb.com/download-center/community
+- make sure mongodb has appropiate permissions
+
+GCP:
+- This tool is now designed to be used with GCP Firestore. It is recommended to use Firestore over MongoDB.
+- User auth via firebase is coming soon!

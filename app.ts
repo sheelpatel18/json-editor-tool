@@ -27,12 +27,7 @@ app.use(helmet())
 
 app.use("/api", api)
 
-if (SSL) {
-    https.createServer(app).listen(PORT, () => {
-        console.log(`Listening on port ${PORT} at ${HOST}`);
-    });
-} else {
-    http.createServer(app).listen(PORT, () => {
-        console.log(`Listening on port ${PORT} at ${HOST}`);
-    });
-}
+const protocol = SSL ? https : http
+protocol.createServer(app).listen(PORT, () => {
+    console.log(`Listening on port ${PORT} at ${HOST}`);
+});

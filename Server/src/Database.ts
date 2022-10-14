@@ -1,9 +1,11 @@
-import { CreateTableCommand, CreateTableCommandInput, DynamoDBClient, ListTablesCommand, ListTablesCommandOutput, PutItemCommand, QueryCommand, ScanCommand, ScanCommandInput } from "@aws-sdk/client-dynamodb";
-import { DeleteCommand, DynamoDBDocumentClient, GetCommand, GetCommandInput, GetCommandOutput, PutCommand, PutCommandInput, PutCommandOutput, QueryCommandInput, TranslateConfig, UpdateCommand, UpdateCommandInput } from "@aws-sdk/lib-dynamodb";
 import BSON_ID from "bson-objectid";
 import { NOT_FOUND } from "./Framework/Errors";
 import settings from "../../settings.json"
+import * as firebaseAdmin from 'firebase-admin'
+import { initializeApp, applicationDefault, cert }  from 'firebase-admin/app'
+import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore'
 const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = settings
+
 
 export enum DatabaseType {
     Mongo,
@@ -18,7 +20,7 @@ export enum DOCUMENT_STATUS {
 }
 
 interface DbIntegration {
-    add(documentData: object): Promise<Document>;
+    add(documentData: object, _id : string): Promise<Document>;
     edit(documentData: object, _id: string): Promise<Document>;
     delete(_id: string): Promise<Document>;
     replace(documentData: object, _id: string): Promise<Document>; // functionaly similar to add, but a seperate method implies the intent
@@ -28,252 +30,51 @@ interface DbIntegration {
     editHierarchyDocument(hierarchyData: object) : Promise<Document>
 }
 
-class FirestoreIntegration implements DbIntegration {
-    editHierarchyDocument(hierarchyData: object): Promise<Document> {
+class FirestoreDatabase implements DbIntegration { // one instance for each colleciton
+    static initialized : boolean = false
+    collectionRef : firebaseAdmin.firestore.CollectionReference
+
+    constructor(collectionName : string) {
+        this.collectionRef = getFirestore().collection(collectionName)
+    }
+
+    async add(data: object, _id : string): Promise<any> {
+       // if (await this.checkDocumentExists(_id)) throw new CustomErrorTypes.CONFLICT("Document already exists") // TEMP ERROR
+        const documentRef = this.collectionRef.doc(_id)
+        await documentRef.set(data)
+        const document = await documentRef.get()
+        return document.exists ? document.data() : null
+    }
+    edit(documentData: object, _id: string): Promise<any> {
         throw new Error("Method not implemented.");
     }
-    getHierarchyDocument(): Promise<Document> {
+    delete(_id: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    replace(documentData: object, _id: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    get(_id: string): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    getAll(): Promise<any[]> {
+        throw new Error("Method not implemented.");
+    }
+    getHierarchyDocument(): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    editHierarchyDocument(hierarchyData: object): Promise<any> {
         throw new Error("Method not implemented.");
     }
 
-    getAll(): Promise<Document[]> {
-        throw new Error("Method not implemented.");
+    static init(googleCloudKey : any) {
+        if (this.initialized) return;
+        initializeApp({
+            credential: firebaseAdmin.credential.cert(googleCloudKey)
+        })
+        this.initialized = true
     }
-    async add(json: object): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async edit(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async delete(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async replace(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async get(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-
-}
-
-class DynamoIntegration implements DbIntegration {
-    db : DynamoDBDocumentClient
-
-    constructor() {
-        const clientAPI : DynamoDBClient = new DynamoDBClient(
-            { 
-                region : "us-east-1",
-                credentials: {
-                    accessKeyId: AWS_ACCESS_KEY_ID,
-                    secretAccessKey: AWS_SECRET_ACCESS_KEY
-                }
-            }
-            ) // lazy init
-        const marshallOptions = {
-            convertEmptyValues: true,
-            removeUndefinedValues: true,
-            convertClassInstanceToMap: false
-          }
-          const unmarshallOptions = {
-            wrapNumbers: false, 
-          }
-          const translateConfig : TranslateConfig = { marshallOptions, unmarshallOptions };
-          this.db = DynamoDBDocumentClient.from(clientAPI, translateConfig);
-    }
-    async editHierarchyDocument(data: object): Promise<Document> {
-        const params : PutCommandInput = {
-            TableName: "JSON_EDITOR_System",
-            Item: data
-        }
-        const result = await this.db.send(new PutCommand(params))
-        return await this.getHierarchyDocument()
-    }
-    async getHierarchyDocument(): Promise<Document> {
-        const params : GetCommandInput = {
-            TableName: "JSON_EDITOR_System",
-            Key: {
-                _id : "HIERARCHY"
-            }
-        }
-        const result : object = (await this.db.send(new GetCommand(params))).Item
-        return result ? new Document(result) : null
-    }
-
-    async init() : Promise<DynamoIntegration> { // returns same instance for method chaining
-        // create system and document table
-
-        const allTables = (await this.db.send(new ListTablesCommand({}))).TableNames
-
-        const systemParams : CreateTableCommandInput = {
-            TableName: "JSON_EDITOR_System",
-            KeySchema: [
-                { AttributeName: "_id", KeyType: "HASH" }
-            ],
-            AttributeDefinitions: [
-                { AttributeName: "_id", AttributeType: "S" }
-            ],
-            ProvisionedThroughput: {
-                ReadCapacityUnits: 1,
-                WriteCapacityUnits: 1
-            }
-        }
-        const documentParams : CreateTableCommandInput = {
-            TableName: "JSON_EDITOR_Documents",
-            KeySchema: [
-                { AttributeName: "_id", KeyType: "HASH" }
-            ],
-            AttributeDefinitions: [
-                { AttributeName: "_id", AttributeType: "S" }
-            ],
-            ProvisionedThroughput: {
-                ReadCapacityUnits: 1,
-                WriteCapacityUnits: 1
-            }
-        }
-        if (!allTables.includes("JSON_EDITOR_System")) await this.db.send(new CreateTableCommand(systemParams))
-        if (!allTables.includes("JSON_EDITOR_Documents")) await this.db.send(new CreateTableCommand(documentParams))
-
-        // create hierarchy document
-        const hierarchyParams : PutCommandInput = {
-            TableName: "JSON_EDITOR_System",
-            Item: {
-                _id: "HIERARCHY",
-                json : {}
-            }
-        }
-        if (! await this.getHierarchyDocument()) await this.db.send(new PutCommand(hierarchyParams))
-
-        return this
-    }
-
-    async getAll(): Promise<Document[]> {
-        const params : ScanCommandInput = {
-            TableName: "JSON_EDITOR_Documents"
-        }
-        const result : Array<any> = (await this.db.send(new ScanCommand(params))).Items
-        return await Promise.all(result.map(async item => this.get(item._id.S))) // temp solution until I can figure out how to get the data to unmarshall correctly
-    }
-    async add(data: any): Promise<Document> { // forced insert, no checks. Use wisely
-        const _id : string = data?._id
-        if (!_id) throw new Error("_id cannot be null")
-        const params : PutCommandInput = {
-            TableName: "JSON_EDITOR_Documents",
-            Item: data
-        }
-        const result = await this.db.send(new PutCommand(params))
-        return await this.get(_id)
-    }
-    async edit(data: any, _id: string): Promise<Document> { //really just replacing. No checks. Use wisely
-        if (!_id) throw new Error("_id cannot be null")
-        const params : PutCommandInput = {
-            TableName: "JSON_EDITOR_Documents",
-            Item: data
-        }
-        const result = await this.db.send(new PutCommand(params))
-        return await this.get(_id)
-    }
-    async delete(_id: string): Promise<Document> {
-        if (!_id) throw new Error("_id cannot be null")
-        const document : Document = await this.get(_id)
-        const params : UpdateCommandInput = {
-            TableName: "JSON_EDITOR_Documents",
-            Key: {
-                _id : _id
-            }
-        }
-        const result = await this.db.send(new DeleteCommand(params))
-        document.status = DOCUMENT_STATUS.DELETED
-        return document
-
-    }
-    async replace(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async get(_id: string): Promise<Document> {
-        if (!_id) throw new Error("_id cannot be null")
-        const params : GetCommandInput = {
-            TableName: "JSON_EDITOR_Documents",
-            Key: {
-                _id : _id
-            }
-        }
-        const result : object = (await this.db.send(new GetCommand(params))).Item
-        if (!result) throw new NOT_FOUND("Document with that ID does not exist")
-        return new Document(result)
-    }
-
-}
-
-class MongoIntegration implements DbIntegration {
-    editHierarchyDocument(hierarchyData: object): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    getHierarchyDocument(): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    init(clientAPI: any): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    getAll(): Promise<Document[]> {
-        throw new Error("Method not implemented.");
-    }
-    async add(json: object): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async edit(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async delete(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async replace(json: object, _id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-    async get(_id: string): Promise<Document> {
-        throw new Error("Method not implemented.");
-    }
-
-}
-
-class Database {
-    static db: DbIntegration;
-    static type: DatabaseType;
-
-    static async init(dbType: DatabaseType | string = null): Promise<DbIntegration> {
-        if (!this.db) {
-            switch (dbType) {
-                case DatabaseType.Firestore:
-                    this.type = dbType
-                    this.db = new FirestoreIntegration();
-                    break;
-                case DatabaseType.DynamoDB:
-                    this.type = dbType
-                    this.db = await new DynamoIntegration().init()
-                    break;
-                case DatabaseType.Mongo:
-                    this.type = dbType
-                    this.db = new MongoIntegration();
-                    break;
-                case "Firestore":
-                    this.type = DatabaseType.Firestore
-                    this.db = new FirestoreIntegration()
-                    break;
-                case "DynamoDB":
-                    this.type = DatabaseType.DynamoDB
-                    this.db = await new DynamoIntegration().init()
-                    break;
-                case "Mongo":
-                    this.type = DatabaseType.Mongo
-                    this.db = new MongoIntegration()
-                    break;
-                default:
-                    this.type = null
-                    throw new Error("Database type is not valid");
-            }
-            return this.db
-        }
-    }
+    
 }
 
 export class Document {
@@ -283,6 +84,7 @@ export class Document {
     status: DOCUMENT_STATUS
     metaData: any
     _id: string
+    static database : DbIntegration
 
     constructor(data : any) { 
         this.json = data.json
@@ -309,7 +111,7 @@ export class Document {
     }
 
     async update(): Promise<Document> { // returns new document instance with updated data
-        return await Database.db.edit({
+        return await Document.database.edit({
             _id : this._id,
             json: this.json,
             metaData: this.metaData
@@ -317,7 +119,7 @@ export class Document {
     }
 
     async delete(): Promise<Document> {
-        return await Database.db.delete(this._id)
+        return await Document.database.delete(this._id)
     }
 
     edit(json: object, metaData: any = null): Document { 
@@ -337,21 +139,21 @@ export class Document {
     }
 
     static async new(json: object, route : string, type : string): Promise<Document> {
-        return await Database.db.add({
+        return await Document.database.add({
             _id : Document.generateID(),
             json: json,
             metaData: Document.getDefaultMetaData(),
             route: route,
             type: type
-        })
+        }, Document.generateID())
     }
 
     static async get(_id: string): Promise<Document> {
-        return await Database.db.get(_id)
+        return await Document.database.get(_id)
     }
 
     static async getAll(): Promise<Document[]> {
-        return await Database.db.getAll()
+        return await Document.database.getAll()
     }
 
     private static getDefaultMetaData(): object {
@@ -362,10 +164,6 @@ export class Document {
 
     private static generateID() : string {
         return BSON_ID().toHexString()
-    }
-
-    static async databaseInit(type: DatabaseType | string): Promise<void> {
-        await Database.init(type)
     }
 
 }
@@ -387,7 +185,7 @@ export class Hierarchy {
 
     // returns hierarchy instance
     static async get(): Promise<Hierarchy> {
-        return new Hierarchy(await  Database.db.getHierarchyDocument())
+        return new Hierarchy(await  Document.database.getHierarchyDocument())
     }
 
     // adds empty route to the hierarchy
@@ -444,7 +242,7 @@ export class Hierarchy {
     }
 
     async update() : Promise<Hierarchy> {
-        return new Hierarchy(await Database.db.editHierarchyDocument(this.doc.parse()))
+        return new Hierarchy(await Document.database.editHierarchyDocument(this.doc.parse()))
     }
     
     static async getJSONFromPath(route : string, type : string) : Promise<object> {
